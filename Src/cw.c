@@ -70,6 +70,427 @@ cw_encode(cw_pulse_t *out, size_t *out_len, const uint8_t *in, size_t len)
 }
 
 /**
+ * Get the CW character that corresponds to the uptime days
+ * @param h a valid pointer to a \p comms_rf_stat_t struct.
+ * @return CW character that corresponds to the uptime days. If the pointer
+ * is invalid the no data character ('0') will be returned.
+ */
+char
+cw_get_uptime_hours_char (comms_rf_stat_t *h)
+{
+  char ret = '0';
+  if (h == NULL) {
+    return '0';
+  }
+
+  if (h->uptime_h < 1) {
+    ret = 'A';
+  }
+  else if (h->uptime_h < 2) {
+    ret = 'B';
+  }
+  else if (h->uptime_h < 3) {
+    ret = 'C';
+  }
+  else if (h->uptime_h < 4) {
+    ret = 'D';
+  }
+  else if (h->uptime_h < 5) {
+    ret = 'E';
+  }
+  else if (h->uptime_h < 6) {
+    ret = 'F';
+  }
+  else if (h->uptime_h < 8) {
+    ret = 'G';
+  }
+  else if (h->uptime_h < 10) {
+    ret = 'H';
+  }
+  else if (h->uptime_h < 10) {
+    ret = 'H';
+  }
+  else if (h->uptime_h < 12) {
+    ret = 'I';
+  }
+  else if (h->uptime_h < 16) {
+    ret = 'J';
+  }
+  else if (h->uptime_h < 20) {
+    ret = 'K';
+  }
+  else if (h->uptime_h < 24) {
+    ret = 'L';
+  }
+  else if (h->uptime_h < 30) {
+    ret = 'M';
+  }
+  else if (h->uptime_h < 36) {
+    ret = 'N';
+  }
+  else if (h->uptime_h < 44) {
+    ret = 'O';
+  }
+  else if (h->uptime_h < 52) {
+    ret = 'P';
+  }
+  else if (h->uptime_h < 60) {
+    ret = 'Q';
+  }
+  else if (h->uptime_h < 70) {
+    ret = 'R';
+  }
+  else if (h->uptime_h < 80) {
+    ret = 'S';
+  }
+  else if (h->uptime_h < 90) {
+    ret = 'T';
+  }
+  else if (h->uptime_h < 100) {
+    ret = 'U';
+  }
+  else if (h->uptime_h < 150) {
+    ret = 'V';
+  }
+  else if (h->uptime_h < 200) {
+    ret = 'W';
+  }
+  else if (h->uptime_h < 300) {
+    ret = 'X';
+  }
+  else if (h->uptime_h < 400) {
+    ret = 'Y';
+  }
+  else {
+    ret = 'Z';
+  }
+  return ret;
+}
+
+/**
+ * Get the CW character that corresponds to the uptime days
+ * @param h a valid pointer to a \p comms_rf_stat_t struct.
+ * @return CW character that corresponds to the uptime days. If the pointer
+ * is invalid the no data character ('0') will be returned.
+ */
+char
+cw_get_uptime_mins_char (comms_rf_stat_t *h)
+{
+  char ret = '0';
+
+  if (h == NULL) {
+    return '0';
+  }
+
+  if (h->uptime_m < 1) {
+    ret =  'A';
+  }
+  else if (h->uptime_m < 2) {
+    ret =  'B';
+  }
+  else if (h->uptime_m < 3) {
+    ret =  'C';
+  }
+  else if (h->uptime_m < 4) {
+    ret =  'D';
+  }
+  else if (h->uptime_m < 5) {
+    ret =  'E';
+  }
+  else if (h->uptime_m < 6) {
+    ret =  'F';
+  }
+  else if (h->uptime_m < 7) {
+    ret =  'G';
+  }
+  else if (h->uptime_m < 8) {
+    ret =  'H';
+  }
+  else if (h->uptime_m < 9) {
+    ret =  'I';
+  }
+  else if (h->uptime_m < 10) {
+    ret =  'J';
+  }
+  else if (h->uptime_m < 11) {
+    ret =  'K';
+  }
+  else if (h->uptime_m < 12) {
+    ret =  'L';
+  }
+  else if (h->uptime_m < 14) {
+    ret =  'M';
+  }
+  else if (h->uptime_m < 16) {
+    ret =  'N';
+  }
+  else if (h->uptime_m < 18) {
+    ret =  'O';
+  }
+  else if (h->uptime_m < 20) {
+    ret =  'P';
+  }
+  else if (h->uptime_m < 24) {
+    ret =  'Q';
+  }
+  else if (h->uptime_m < 28) {
+    ret =  'R';
+  }
+  else if (h->uptime_m < 32) {
+    ret =  'S';
+  }
+  else if (h->uptime_m < 36) {
+    ret =  'T';
+  }
+  else if (h->uptime_m < 40) {
+    ret =  'U';
+  }
+  else if (h->uptime_m < 44) {
+    ret =  'V';
+  }
+  else if (h->uptime_m < 48) {
+    ret =  'W';
+  }
+  else if (h->uptime_m < 52) {
+    ret =  'X';
+  }
+  else if (h->uptime_m < 56) {
+    ret =  'Y';
+  }
+  else {
+    ret =  'Z';
+  }
+  return ret;
+}
+
+char
+cw_get_temp_char(comms_rf_stat_t *h)
+{
+  char ret = '0';
+
+  if (h == NULL) {
+    return '0';
+  }
+
+  float temp = h->temperature;
+  if (temp < -10.0) {
+    ret =  'A';
+  }
+  else if (temp < -8.0) {
+    ret =  'B';
+  }
+  else if (temp < -6.0) {
+    ret =  'C';
+  }
+  else if (temp < -4.0) {
+    ret =  'D';
+  }
+  else if (temp < -2.0) {
+    ret =  'E';
+  }
+  else if (temp < 0.0) {
+    ret =  'F';
+  }
+  else if (temp < 2.0) {
+    ret =  'G';
+  }
+  else if (temp < 4.0) {
+    ret =  'H';
+  }
+  else if (temp < 6.0) {
+    ret =  'I';
+  }
+  else if (temp < 8.0) {
+    ret =  'J';
+  }
+  else if (temp < 10.0) {
+    ret =  'K';
+  }
+  else if (temp < 12.0) {
+    ret =  'L';
+  }
+  else if (temp < 14.0) {
+    ret =  'M';
+  }
+  else if (temp < 16.0) {
+    ret =  'N';
+  }
+  else if (temp < 20.0) {
+    ret =  'O';
+  }
+  else if (temp < 24.0) {
+    ret =  'P';
+  }
+  else if (temp < 28.0) {
+    ret =  'Q';
+  }
+  else if (temp < 32.0) {
+    ret =  'R';
+  }
+  else if (temp < 36.0) {
+    ret =  'S';
+  }
+  else if (temp < 40.0) {
+    ret =  'T';
+  }
+  else if (temp < 42.0) {
+    ret =  'U';
+  }
+  else if (temp < 44.0) {
+    ret =  'V';
+  }
+  else if (temp < 46.0) {
+    ret =  'W';
+  }
+  else if (temp < 48.0) {
+    ret =  'X';
+  }
+  else if (temp < 50.0) {
+    ret =  'Y';
+  }
+  else {
+    ret =  'Z';
+  }
+  return ret;
+}
+
+char
+cw_get_cont_errors_char(comms_rf_stat_t *h)
+{
+  size_t err_tx;
+  size_t err_rx;
+  char ret = '0';
+
+  if (h == NULL) {
+    return '0';
+  }
+
+  err_tx = h->tx_frames_cnt;
+  err_rx = h->rx_frames_cnt;
+
+  if(err_tx == 0 && err_rx == 0){
+    ret = 'A';
+  }
+  else if(err_tx == 1 && err_rx == 0){
+    ret = 'B';
+  }
+  else if(err_tx == 2 && err_rx == 0){
+    ret = 'C';
+  }
+  else if(err_tx > 2 && err_rx == 0){
+    ret = 'D';
+  }
+  if(err_tx == 0 && err_rx == 1){
+    ret = 'E';
+  }
+  else if(err_tx == 1 && err_rx == 1){
+    ret = 'F';
+  }
+  else if(err_tx == 2 && err_rx == 1){
+    ret = 'G';
+  }
+  else if(err_tx > 2 && err_rx == 1){
+    ret = 'H';
+  }
+  if(err_tx == 0 && err_rx == 2){
+    ret = 'I';
+  }
+  else if(err_tx == 1 && err_rx == 2){
+    ret = 'J';
+  }
+  else if(err_tx == 2 && err_rx == 2){
+    ret = 'K';
+  }
+  else if(err_tx > 2 && err_rx == 2){
+    ret = 'L';
+  }
+  if(err_tx == 0 && err_rx > 2){
+    ret = 'M';
+  }
+  else if(err_tx == 1 && err_rx > 2){
+    ret = 'N';
+  }
+  else if(err_tx == 2 && err_rx > 2){
+    ret = 'O';
+  }
+  else if(err_tx > 2 && err_rx > 2){
+    ret = 'P';
+  }
+  else{
+    ret = 'Z';
+  }
+  return ret;
+}
+
+char
+cw_get_last_error_char(comms_rf_stat_t *h)
+{
+  int32_t err_code;
+  char ret = '0';
+
+  if (h == NULL) {
+    return '0';
+  }
+  err_code = h->last_error_code;
+
+  if(err_code == -9){
+    ret = 'A';
+  }
+  else if(err_code == -8){
+    ret = 'B';
+  }
+  else if(err_code == -7){
+    ret = 'C';
+  }
+  else if(err_code == -6){
+    ret = 'D';
+  }
+  else if(err_code == -5){
+    ret = 'E';
+  }
+  else if(err_code == -4){
+    ret = 'F';
+  }
+  else if(err_code == -3){
+    ret = 'G';
+  }
+  else if(err_code == -2){
+    ret = 'H';
+  }
+  else if(err_code == -1){
+    ret = 'I';
+  }
+  else if(err_code == -56){
+    ret = 'J';
+  }
+  else if(err_code == -55){
+    ret = 'K';
+  }
+  else if(err_code == -54){
+    ret = 'L';
+  }
+  else if(err_code == -53){
+    ret = 'M';
+  }
+  else if(err_code == -52){
+    ret = 'N';
+  }
+  else if(err_code == -51){
+    ret = 'O';
+  }
+  else if(err_code == -61){
+    ret = 'P';
+  }
+  else if(err_code == 0){
+    ret = 'Z';
+  }
+  else{
+    ret = 'Q';
+  }
+  return ret;
+}
+
+/**
  * Initializes the internal structures for CW encoding.
  *
  * The CW code is based at the ITU international Morse code
@@ -312,6 +733,18 @@ cw_init ()
   cw_lut['W'].s[i++] = CW_DASH;
   cw_lut['W'].s[i++] = CW_CHAR_DELIM;
   cw_lut['W'].s_num = i;
+
+  i = 0;
+  cw_lut['X'].is_valid = 1;
+  cw_lut['X'].s[i++] = CW_DASH;
+  cw_lut['X'].s[i++] = CW_SYMBOL_DELIM;
+  cw_lut['X'].s[i++] = CW_DOT;
+  cw_lut['X'].s[i++] = CW_SYMBOL_DELIM;
+  cw_lut['X'].s[i++] = CW_DOT;
+  cw_lut['X'].s[i++] = CW_SYMBOL_DELIM;
+  cw_lut['X'].s[i++] = CW_DASH;
+  cw_lut['X'].s[i++] = CW_CHAR_DELIM;
+  cw_lut['X'].s_num = i;
 
   i = 0;
   cw_lut['Y'].is_valid = 1;

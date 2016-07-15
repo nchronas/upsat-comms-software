@@ -47,10 +47,14 @@
 #include "service_utilities.h"
 #include "comms_manager.h"
 #include "sensors.h"
-#include "sysview.h"  
+#include "stats.h"
+#include "sysview.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
 I2C_HandleTypeDef hi2c1;
 
 IWDG_HandleTypeDef hiwdg;
@@ -66,30 +70,18 @@ DMA_HandleTypeDef hdma_uart5_tx;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-uint8_t aTxBuffer[500];
-uint8_t aRxBuffer[500] = {0};
-uint8_t spi_buffer[500] = {0};
-
-uint8_t tx_buf[2 * AX25_MAX_FRAME_LEN];
-
-uint8_t payload[AX25_MAX_FRAME_LEN] = "HELLO WORLD FROM UPSAT HELLO WORLD FROM UPSAT HELLO WORLD FROM UPSAT HELLO WORLD FROM UPSAT";
-
 uint8_t res;
-uint8_t resRX;
-uint8_t res2[6];
-uint8_t res2RX[6];
-uint8_t res_fifo[6];
-uint8_t res_fifoRX[6];
-uint8_t loop = 0;
+uint16_t size = 0;
+
 volatile uint8_t tx_thr_flag = 0;
 volatile uint8_t tx_fin_flag = 0;
 volatile uint8_t rx_sync_flag = 0;
 volatile uint8_t rx_finished_flag = 0;
 volatile uint8_t rx_thr_flag = 0;
 
-uint8_t dbg_msg = 0;
+uint8_t uart_temp[512];
 
-uint8_t uart_temp[200];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -102,6 +94,7 @@ static void MX_SPI2_Init(void);
 static void MX_UART5_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_IWDG_Init(void);
+static void MX_ADC1_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -110,27 +103,6 @@ static void MX_IWDG_Init(void);
 
 /* USER CODE BEGIN 0 */
 
-static inline void
-debug_ecss()
-{
-  for (size_t i = 0; i < 50; i++) {
-    payload[0] = 8;
-    payload[1] = 1;
-    payload[2] = 192;
-    payload[4] = 0;
-    payload[5] = 0;
-    payload[6] = 5;
-    payload[7] = 16;
-    payload[8] = 17;
-    payload[9] = 2;
-    payload[10] = 7;
-    payload[11] = 0;
-    payload[12] = 200;
-    send_payload (payload, 13, COMMS_DEFAULT_TIMEOUT_MS);
-    HAL_Delay(1);
-  }
-  HAL_Delay(1000);
-}
 /* USER CODE END 0 */
 
 int main(void)
@@ -140,6 +112,8 @@ int main(void)
   int32_t ret = 0;
   uint8_t rst_src;
   uint32_t cw_tick;
+  uint32_t now;
+  uint8_t send_cw = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -159,6 +133,7 @@ int main(void)
   MX_UART5_Init();
   MX_USART3_UART_Init();
   MX_IWDG_Init();
+  MX_ADC1_Init();
 
   /* USER CODE BEGIN 2 */
 
@@ -166,17 +141,16 @@ int main(void)
   sysview_init();
 
   /* TX Pins RESETN_TX, PA_CTRL_PIN, CSN1 */
-  HAL_GPIO_WritePin (GPIOA, RESETN_TX_Pin, GPIO_PIN_SET); //PA10
-  HAL_GPIO_WritePin (PA_CNTRL_GPIO_Port, PA_CNTRL_Pin, GPIO_PIN_SET); //POWER AMP CONTROL
-  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_15, GPIO_PIN_SET); //csn1
+  HAL_GPIO_WritePin (GPIOA, RESETN_TX_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (PA_CNTRL_GPIO_Port, PA_CNTRL_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
 
   /* RX Pins RESETN_RX, CSN2 */
-  HAL_GPIO_WritePin (GPIOB, GPIO_PIN_1, GPIO_PIN_SET); //PIN36 2RESETN
-  HAL_GPIO_WritePin (GPIOE, GPIO_PIN_15, GPIO_PIN_SET); //PIN36 2CSN
+  HAL_GPIO_WritePin (GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+  HAL_GPIO_WritePin (GPIOE, GPIO_PIN_15, GPIO_PIN_SET);
 
   /*Must use this in order the compiler occupies flash sector 3*/
   flash_INIT();
-  
   uint32_t add_read = flash_read_trasmit();
 
   HAL_Delay (4000);
@@ -184,13 +158,7 @@ int main(void)
   comms_init();
   LOG_UART_DBG(&huart5, "RF systems initialized and calibrated %d", add_read);
 
-  HAL_Delay (100);
-
-  pkt_pool_INIT ();
-
-  uint16_t size = 0;
-
-  /*Uart inits*/
+  /* UART initializations */
   HAL_UART_Receive_IT (&huart5, comms_data.obc_uart.uart_buf, UART_BUF_SIZE);
 
   /* Sent to OBC the reason of re-booting */
@@ -204,73 +172,13 @@ int main(void)
 
   cw_tick = HAL_GetTick();
   while (1) {
-    HAL_IWDG_Refresh(&hiwdg);
-    traceIMPORT(0);
-    import_pkt (OBC_APP_ID, &comms_data.obc_uart);
-    traceIMPORT(1);
-    traceEXPORT(0);
-    export_pkt (OBC_APP_ID, &comms_data.obc_uart);
-    traceEXPORT(1);
-
-    /* Check if a CW beacon should be sent */
-    if(HAL_GetTick() - cw_tick > __CW_INTERVAL_MS ) {
-
-      /* Wait a little to finish the previous transmission if any */
-      HAL_Delay(1000);
-      ret = snprintf ((char *) payload, AX25_MAX_FRAME_LEN,
-		      "UPSAT %d", loop);
-      send_payload_cw(payload, ret);
-      cw_tick = HAL_GetTick();
+    now = HAL_GetTick();
+    if(now - cw_tick > __CW_INTERVAL_MS){
+      cw_tick = now;
+      /* Should be reset from comms_routine_dispatcher() when served */
+      send_cw = 1;
     }
-
-    /*--------------TX------------*/
-    if(dbg_msg == 1)
-    {
-      /* Send a dummy message towards earth */
-      ret = snprintf ((char *) payload, AX25_MAX_FRAME_LEN,
-          "HELLO WORLD FROM UPSAT 0 "
-		      "HELLO WORLD FROM UPSAT 1"
-		      "HELLO WORLD FROM UPSAT 2"
-		      "HELLO WORLD FROM UPSAT 3"
-		      "loop %d", loop);
-
-      ret =  send_payload(payload, (size_t)ret, COMMS_DEFAULT_TIMEOUT_MS);
-      HAL_Delay (50);
-      if (ret > 0) {
-        HAL_Delay (50);
-        LOG_UART_DBG(&huart5, "Frame transmitted Loop %u Ret %d", loop, ret);
-      }
-      else {
-        LOG_UART_DBG(&huart5, "Error %d at frame transmission", ret);
-      }
-      loop++;
-      HAL_Delay (500);
-    }
-
-    /*--------------RX------------*/
-#if 1
-    memset(aRxBuffer, 0, 255);
-    ret = recv_payload(aRxBuffer, 255, COMMS_DEFAULT_TIMEOUT_MS * 2 );
-    if(ret < 0){
-      LOG_UART_DBG(&huart5, "RX Failed %d\n", ret);
-    }
-    else{
-      LOG_UART_DBG(&huart5, "RX OK %d\n", ret);
-      HAL_Delay (50);
-      LOG_UART_DBG(&huart5, "RX Msg OK: %s", aRxBuffer);
-      ret = rx_ecss(aRxBuffer, ret);
-      if(ret == SATR_OK){
-	LOG_UART_DBG(&huart5, "ECSS Valid");
-      }
-      else{
-	LOG_UART_DBG(&huart5, "Invalid ECSS. Error %d", ret);
-      }
-    }
-    large_data_IDLE();
-#endif
-
-    /* Update the temperature readings */
-    update_adt7420();
+    comms_routine_dispatcher(&send_cw);
 
   /* USER CODE END WHILE */
 
@@ -318,6 +226,61 @@ void SystemClock_Config(void)
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+}
+
+/* ADC1 init function */
+void MX_ADC1_Init(void)
+{
+
+  ADC_ChannelConfTypeDef sConfig;
+
+    /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
+    */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV8;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 6;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
+  HAL_ADC_Init(&hadc1);
+
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Rank = 2;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Rank = 3;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Rank = 4;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Rank = 5;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Rank = 6;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
 }
 
 /* I2C1 init function */
@@ -436,6 +399,9 @@ void MX_DMA_Init(void)
   /* DMA1_Stream7_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
   /* DMA2_Stream3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);

@@ -38,9 +38,19 @@
 
 static uint8_t interm_buf[AX25_PREAMBLE_LEN + AX25_POSTAMBLE_LEN + AX25_MAX_FRAME_LEN + 2];
 static uint8_t spi_buf[AX25_PREAMBLE_LEN + AX25_POSTAMBLE_LEN + AX25_MAX_FRAME_LEN];
-static uint8_t rx_buf[AX25_MAX_FRAME_LEN];
+static uint8_t recv_buffer[AX25_MAX_FRAME_LEN];
+static uint8_t send_buffer[AX25_MAX_FRAME_LEN];
+
+volatile extern uint8_t rx_sync_flag;
 
 extern UART_HandleTypeDef huart5;
+extern IWDG_HandleTypeDef hiwdg;
+extern struct _comms_data comms_data;
+comms_rf_stat_t comms_stats;
+/**
+ * Used to delay the update of the internal statistics and save some cycles
+ */
+static uint32_t delay_cnt;
 
 /**
  * Disables the TX RF
@@ -242,24 +252,107 @@ send_payload_cw(const uint8_t *in, size_t len)
   return ret;
 }
 
-
+/**
+ * Sends a CW beacons based on the internal COMMS statistics tracking mechanism
+ * @return a negative number in case of error
+ */
 int32_t
-comms_routine()
+send_cw_beacon()
 {
-  int32_t ret;
-  uint32_t wod_tick;
-
-  wod_tick = HAL_GetTick();
-  while(1) {
-    if(HAL_GetTick() - wod_tick > COMMS_WOD_PERIOD_MS){
-      /* Get the WOD and send it! */
-    }
-
-    ret = recv_payload(rx_buf, AX25_MAX_FRAME_LEN, COMMS_DEFAULT_TIMEOUT_MS);
-
-  }
+  size_t i = 0;
+  memset(send_buffer, 0, AX25_MAX_FRAME_LEN);
+  send_buffer[i++] = 'U';
+  send_buffer[i++] = 'P';
+  send_buffer[i++] = 'S';
+  send_buffer[i++] = 'A';
+  send_buffer[i++] = 'T';
+  send_buffer[i++] = cw_get_temp_char(&comms_stats);
+  send_buffer[i++] = cw_get_uptime_hours_char(&comms_stats);
+  send_buffer[i++] = cw_get_uptime_mins_char(&comms_stats);
+  send_buffer[i++] = cw_get_cont_errors_char(&comms_stats);
+  send_buffer[i++] = cw_get_last_error_char(&comms_stats);
+  return send_payload_cw(send_buffer, i);
 }
 
+/**
+ * This dispatcher checks which communication related task should execute.
+ * The task may be:
+ * 	1. Serve an RX operation because the corresponding IRQ was triggered
+ * 	2. Transmit the CW beacon
+ * 	3. Flush and restart the RX operation if the CC1120 reached an invalid
+ * 	   state.
+ *
+ * 	NOTE: Normal FSK TX operations are triggered automatically by the
+ * 	ECSS services subsystem and more precisely from the route() function.
+ *
+ * @param send_cw pointer to a boolean indicating if the COMMS should transmit
+ * a CW beacon. It will be reset from this function only if the beacon
+ * has been succesfully transmitted or the TX subsystem encountered an error
+ * during transmission. This is happening because we give a priority to
+ * the RX event.
+ * @return COMMS_STATUS_OK on success or an appropriate error code.
+ */
+int32_t
+comms_routine_dispatcher(uint8_t *send_cw)
+{
+  int32_t ret = COMMS_STATUS_OK;
+  uint32_t now;
+
+  /* A frame is received */
+  if(rx_sync_flag){
+    rx_sync_flag = 0;
+    ret = recv_payload(recv_buffer, AX25_MAX_FRAME_LEN,
+		       COMMS_DEFAULT_TIMEOUT_MS);
+    if(ret > 0) {
+      ret = rx_ecss(recv_buffer, ret);
+      if(ret == SATR_OK){
+	comms_rf_stats_frame_received(&comms_stats, FRAME_OK, 0);
+	LOG_UART_DBG(&huart5, "All ok %d", ret);
+      }
+      else{
+	comms_rf_stats_frame_received(&comms_stats, !FRAME_OK, ret);
+      }
+    }
+    else{
+      comms_rf_stats_frame_received(&comms_stats, !FRAME_OK, ret);
+    }
+  }
+  else if(*send_cw){
+    *send_cw = 0;
+    ret = send_cw_beacon();
+    LOG_UART_DBG(&huart5, "CW %d", ret);
+  }
+  else{
+    import_pkt (OBC_APP_ID, &comms_data.obc_uart);
+    export_pkt (OBC_APP_ID, &comms_data.obc_uart);
+  }
+
+  large_data_IDLE();
+
+
+  /*
+   * Update the statistics of the COMMS and reset the watchdog
+   * if there are strong reasons to do so.
+   */
+  now = HAL_GetTick();
+  if(now - delay_cnt > COMMS_STATS_PERIOD_MS) {
+    delay_cnt = now;
+
+    comms_rf_stats_update(&comms_stats);
+    if(comms_stats.rx_failed_cnt < 10 && comms_stats.tx_failed_cnt < 5) {
+      HAL_IWDG_Refresh(&hiwdg);
+    }
+  }
+
+  /* Check the RX FIFO status and act accordingly */
+  cc_rx_check_fifo_status();
+
+  return ret;
+}
+
+/**
+ * Make all the necessary initializations for the COMMS subsystem
+ */
 void
 comms_init ()
 {
@@ -300,6 +393,19 @@ comms_init ()
 
   large_data_init();
 
-  /* Initialize temperature sensor */
-  init_adt7420 ();
+  /*Initialize the COMMS statistics mechanism */
+  comms_rf_stats_init(&comms_stats);
+
+  /* Initialize the CC1120 in RX mode */
+  cc_rx_cmd(SRX);
+
+  delay_cnt = HAL_GetTick();
+
+  /*Start the watchdog */
+  HAL_IWDG_Start(&hiwdg);
+
+  pkt_pool_INIT ();
+
+  /* Wait a little and we are ready! */
+  HAL_Delay(1000);
 }

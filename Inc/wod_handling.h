@@ -17,21 +17,23 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef INC_STATUS_H_
-#define INC_STATUS_H_
+#ifndef INC_WOD_HANDLING_H_
+#define INC_WOD_HANDLING_H_
 
+#include <stdint.h>
+#include <stdlib.h>
 
-enum {
-  COMMS_STATUS_DMA_ERROR = -9,
-  COMMS_STATUS_RF_OFF = -8,
-  COMMS_STATUS_RF_SWITCH_CMD = -7,
-  COMMS_STATUS_RXFIFO_ERROR = -6,
-  COMMS_STATUS_INVALID_FRAME = -5,
-  COMMS_STATUS_TIMEOUT = -4,
-  COMMS_STATUS_NO_DATA = -3,
-  COMMS_STATUS_BUFFER_OVERFLOW = -2,
-  COMMS_STATUS_BUFFER_UNDERFLOW = -1,
-  COMMS_STATUS_OK = 0,
-};
+/**
+ * The number of bytes in every WOD data set WITHOUT the mode bit
+ */
+#define WOD_DATASET_SIZE 7
 
-#endif /* INC_STATUS_H_ */
+/**
+ * The maximum number of datasets that each WOD can carry
+ */
+#define WOD_MAX_DATASETS 32
+
+int32_t
+prepare_wod(uint8_t *wod, const uint8_t *obc_wod, size_t len);
+
+#endif /* INC_WOD_HANDLING_H_ */

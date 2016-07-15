@@ -22,7 +22,7 @@
 
 #include "cc1120_config.h"
 
-static const char __UPSAT_CALLSIGN[] = "UPSAT";
+static const char __UPSAT_CALLSIGN[] = "ON02GR";
 static const uint8_t __UPSAT_SSID = 0;
 static const uint8_t __UPSAT_AX25_CTRL = 0x03;
 static const char __UPSAT_DEST_CALLSIGN[] = "ABCD";
@@ -71,7 +71,7 @@ static const uint32_t __SCRAMBLER_ORDER = 16;
 /**
  * The interval of the CW beacon
  */
-static const uint32_t __CW_INTERVAL_MS = 40000;
+static const uint32_t __CW_INTERVAL_MS = 300000;
 
 /**
  * Enables/disables the UART debug
@@ -83,11 +83,16 @@ static const uint32_t __CW_INTERVAL_MS = 40000;
  * If set to 1, the UART target is the OBC. If set to 0, the UART target
  * is the FTDI debugging dongle
  */
-#define COMMS_UART_DEST_OBC 1
+#define COMMS_UART_DEST_OBC 0
 /**
  * The default time out period is 4 seconds
  */
 #define COMMS_DEFAULT_TIMEOUT_MS 4000
+
+/**
+ * The default COMMS statistics polling period
+ */
+#define COMMS_STATS_PERIOD_MS 1000
 
 /**
  * The WOD (World Orbit Data) period in milliseconds

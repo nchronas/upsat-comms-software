@@ -17,21 +17,43 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef INC_STATUS_H_
-#define INC_STATUS_H_
 
+#ifndef INC_STATS_H_
+#define INC_STATS_H_
 
-enum {
-  COMMS_STATUS_DMA_ERROR = -9,
-  COMMS_STATUS_RF_OFF = -8,
-  COMMS_STATUS_RF_SWITCH_CMD = -7,
-  COMMS_STATUS_RXFIFO_ERROR = -6,
-  COMMS_STATUS_INVALID_FRAME = -5,
-  COMMS_STATUS_TIMEOUT = -4,
-  COMMS_STATUS_NO_DATA = -3,
-  COMMS_STATUS_BUFFER_OVERFLOW = -2,
-  COMMS_STATUS_BUFFER_UNDERFLOW = -1,
-  COMMS_STATUS_OK = 0,
-};
+#include <stdlib.h>
+#include <stdint.h>
 
-#endif /* INC_STATUS_H_ */
+typedef struct {
+  size_t rx_failed_cnt;
+  size_t tx_failed_cnt;
+  size_t tx_frames_cnt;
+  size_t rx_frames_cnt;
+  size_t uptime_h;
+  size_t uptime_m;
+  size_t uptime_s;
+  uint32_t last_tick;
+  float temperature;
+  int32_t last_error_code;
+  uint32_t battery_mV;
+  uint32_t battery_mA;
+  uint32_t invalid_dest_frames_cnt;
+} comms_rf_stat_t;
+
+void
+comms_rf_stats_init(comms_rf_stat_t *h);
+
+void
+comms_rf_stats_update(comms_rf_stat_t *h);
+
+void
+comms_rf_stats_frame_received(comms_rf_stat_t *h, uint8_t succesfull,
+			      int32_t error);
+
+void
+comms_rf_stats_frame_transmitted(comms_rf_stat_t *h, uint8_t succesfull,
+				 int32_t error);
+
+void
+comms_rf_stats_invalid_dest_frame(comms_rf_stat_t *h);
+#endif /* INC_STATS_H_ */

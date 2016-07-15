@@ -22,6 +22,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include "stats.h"
 
 #define CW_DOT_DURATION_MS 60
 #define CW_DASH_DURATION_MS (3*CW_DOT_DURATION_MS)
@@ -56,7 +57,7 @@ typedef struct {
  */
 typedef enum {
   CW_OK = 0,   //!< CW_OK all ok
-  CW_ERROR = -1//!< CW_ERROR an error occured
+  CW_ERROR = -61//!< CW_ERROR an error occured
 } cw_status_t;
 
 /**
@@ -74,5 +75,20 @@ cw_init ();
 
 int32_t
 cw_encode(cw_pulse_t *out, size_t *out_len, const uint8_t *in, size_t len);
+
+char
+cw_get_uptime_hours_char(comms_rf_stat_t *h);
+
+char
+cw_get_uptime_mins_char(comms_rf_stat_t *h);
+
+char
+cw_get_temp_char(comms_rf_stat_t *h);
+
+char
+cw_get_cont_errors_char(comms_rf_stat_t *h);
+
+char
+cw_get_last_error_char(comms_rf_stat_t *h);
 
 #endif /* INC_CW_H_ */

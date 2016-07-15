@@ -76,7 +76,7 @@ static const uint32_t __CW_INTERVAL_MS = 300000;
 /**
  * Enables/disables the UART debug
  */
-#define COMMS_UART_DBG_EN 1
+#define COMMS_UART_DBG_EN 0
 #define COMMS_UART_BUF_LEN 512
 
 /**

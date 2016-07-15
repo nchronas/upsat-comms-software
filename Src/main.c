@@ -86,6 +86,7 @@ uint8_t uart_temp[512];
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void Error_Handler(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
@@ -210,7 +211,10 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
-  HAL_RCC_OscConfig(&RCC_OscInitStruct);
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -218,7 +222,10 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
-  HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5);
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
@@ -229,7 +236,7 @@ void SystemClock_Config(void)
 }
 
 /* ADC1 init function */
-void MX_ADC1_Init(void)
+static void MX_ADC1_Init(void)
 {
 
   ADC_ChannelConfTypeDef sConfig;
@@ -247,44 +254,65 @@ void MX_ADC1_Init(void)
   hadc1.Init.NbrOfConversion = 6;
   hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
-  HAL_ADC_Init(&hadc1);
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
     */
   sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
     */
   sConfig.Rank = 2;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
     */
   sConfig.Rank = 3;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
     */
   sConfig.Rank = 4;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
     */
   sConfig.Rank = 5;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
     */
   sConfig.Rank = 6;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
 }
 
 /* I2C1 init function */
-void MX_I2C1_Init(void)
+static void MX_I2C1_Init(void)
 {
 
   hi2c1.Instance = I2C1;
@@ -296,23 +324,29 @@ void MX_I2C1_Init(void)
   hi2c1.Init.OwnAddress2 = 0;
   hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
   hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  HAL_I2C_Init(&hi2c1);
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
 }
 
 /* IWDG init function */
-void MX_IWDG_Init(void)
+static void MX_IWDG_Init(void)
 {
 
   hiwdg.Instance = IWDG;
   hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
   hiwdg.Init.Reload = 4095;
-  HAL_IWDG_Init(&hiwdg);
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
 }
 
 /* SPI1 init function */
-void MX_SPI1_Init(void)
+static void MX_SPI1_Init(void)
 {
 
   hspi1.Instance = SPI1;
@@ -327,12 +361,15 @@ void MX_SPI1_Init(void)
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi1.Init.CRCPolynomial = 10;
-  HAL_SPI_Init(&hspi1);
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
 }
 
 /* SPI2 init function */
-void MX_SPI2_Init(void)
+static void MX_SPI2_Init(void)
 {
 
   hspi2.Instance = SPI2;
@@ -347,12 +384,15 @@ void MX_SPI2_Init(void)
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi2.Init.CRCPolynomial = 10;
-  HAL_SPI_Init(&hspi2);
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
 }
 
 /* UART5 init function */
-void MX_UART5_Init(void)
+static void MX_UART5_Init(void)
 {
 
   huart5.Instance = UART5;
@@ -363,12 +403,15 @@ void MX_UART5_Init(void)
   huart5.Init.Mode = UART_MODE_TX_RX;
   huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart5.Init.OverSampling = UART_OVERSAMPLING_16;
-  HAL_UART_Init(&huart5);
+  if (HAL_UART_Init(&huart5) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
 }
 
 /* USART3 init function */
-void MX_USART3_UART_Init(void)
+static void MX_USART3_UART_Init(void)
 {
 
   huart3.Instance = USART3;
@@ -379,14 +422,17 @@ void MX_USART3_UART_Init(void)
   huart3.Init.Mode = UART_MODE_TX_RX;
   huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-  HAL_UART_Init(&huart3);
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
 }
 
 /** 
   * Enable DMA controller clock
   */
-void MX_DMA_Init(void) 
+static void MX_DMA_Init(void) 
 {
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
@@ -415,7 +461,7 @@ void MX_DMA_Init(void)
         * EVENT_OUT
         * EXTI
 */
-void MX_GPIO_Init(void)
+static void MX_GPIO_Init(void)
 {
 
   GPIO_InitTypeDef GPIO_InitStruct;
@@ -528,6 +574,21 @@ HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin)
   }
 }
 /* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @param  None
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler */
+  /* User can add his own implementation to report the HAL error return state */
+  while(1) 
+  {
+  }
+  /* USER CODE END Error_Handler */ 
+}
 
 #ifdef USE_FULL_ASSERT
 

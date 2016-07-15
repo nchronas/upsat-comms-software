@@ -42,6 +42,7 @@ extern DMA_HandleTypeDef hdma_spi2_rx;
 
 extern DMA_HandleTypeDef hdma_uart5_tx;
 
+extern void Error_Handler(void);
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
@@ -64,8 +65,12 @@ void HAL_MspInit(void)
   HAL_NVIC_SetPriority(BusFault_IRQn, 0, 0);
   /* UsageFault_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(UsageFault_IRQn, 0, 0);
+  /* SVCall_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SVCall_IRQn, 0, 0);
   /* DebugMonitor_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DebugMonitor_IRQn, 0, 0);
+  /* PendSV_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(PendSV_IRQn, 0, 0);
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 
@@ -100,7 +105,10 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     hdma_adc1.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
     hdma_adc1.Init.MemBurst = DMA_MBURST_INC4;
     hdma_adc1.Init.PeriphBurst = DMA_PBURST_SINGLE;
-    HAL_DMA_Init(&hdma_adc1);
+    if (HAL_DMA_Init(&hdma_adc1) != HAL_OK)
+    {
+      Error_Handler();
+    }
 
     __HAL_LINKDMA(hadc,DMA_Handle,hdma_adc1);
 
@@ -235,7 +243,10 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     hdma_spi1_tx.Init.Mode = DMA_NORMAL;
     hdma_spi1_tx.Init.Priority = DMA_PRIORITY_LOW;
     hdma_spi1_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    HAL_DMA_Init(&hdma_spi1_tx);
+    if (HAL_DMA_Init(&hdma_spi1_tx) != HAL_OK)
+    {
+      Error_Handler();
+    }
 
     __HAL_LINKDMA(hspi,hdmatx,hdma_spi1_tx);
 
@@ -275,7 +286,10 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     hdma_spi2_rx.Init.Mode = DMA_NORMAL;
     hdma_spi2_rx.Init.Priority = DMA_PRIORITY_LOW;
     hdma_spi2_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    HAL_DMA_Init(&hdma_spi2_rx);
+    if (HAL_DMA_Init(&hdma_spi2_rx) != HAL_OK)
+    {
+      Error_Handler();
+    }
 
     __HAL_LINKDMA(hspi,hdmarx,hdma_spi2_rx);
 
@@ -378,7 +392,10 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     hdma_uart5_tx.Init.Mode = DMA_NORMAL;
     hdma_uart5_tx.Init.Priority = DMA_PRIORITY_LOW;
     hdma_uart5_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    HAL_DMA_Init(&hdma_uart5_tx);
+    if (HAL_DMA_Init(&hdma_uart5_tx) != HAL_OK)
+    {
+      Error_Handler();
+    }
 
     __HAL_LINKDMA(huart,hdmatx,hdma_uart5_tx);
 

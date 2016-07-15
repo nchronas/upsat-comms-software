@@ -324,6 +324,7 @@ comms_routine_dispatcher(uint8_t *send_cw)
   }
   else{
     import_pkt (OBC_APP_ID, &comms_data.obc_uart);
+    if(rx_sync_flag) { /*exit*/ }
     export_pkt (OBC_APP_ID, &comms_data.obc_uart);
   }
 
@@ -402,7 +403,7 @@ comms_init ()
   delay_cnt = HAL_GetTick();
 
   /*Start the watchdog */
-  HAL_IWDG_Start(&hiwdg);
+  //HAL_IWDG_Start(&hiwdg);
 
   pkt_pool_INIT ();
 

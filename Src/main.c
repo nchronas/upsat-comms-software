@@ -47,6 +47,7 @@
 #include "service_utilities.h"
 #include "comms_manager.h"
 #include "sensors.h"
+#include "sysview.h"  
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -161,6 +162,9 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
 
+  SEGGER_SYSVIEW_Conf();
+  sysview_init();
+
   /* TX Pins RESETN_TX, PA_CTRL_PIN, CSN1 */
   HAL_GPIO_WritePin (GPIOA, RESETN_TX_Pin, GPIO_PIN_SET); //PA10
   HAL_GPIO_WritePin (PA_CNTRL_GPIO_Port, PA_CNTRL_Pin, GPIO_PIN_SET); //POWER AMP CONTROL
@@ -186,9 +190,6 @@ int main(void)
 
   uint16_t size = 0;
 
-  event_crt_pkt_api (uart_temp, "COMMS STARTED", 666, 666, "", &size, SATR_OK);
-  HAL_uart_tx (DBG_APP_ID, (uint8_t *) uart_temp, size);
-
   /*Uart inits*/
   HAL_UART_Receive_IT (&huart5, comms_data.obc_uart.uart_buf, UART_BUF_SIZE);
 
@@ -204,8 +205,12 @@ int main(void)
   cw_tick = HAL_GetTick();
   while (1) {
     HAL_IWDG_Refresh(&hiwdg);
+    traceIMPORT(0);
     import_pkt (OBC_APP_ID, &comms_data.obc_uart);
+    traceIMPORT(1);
+    traceEXPORT(0);
     export_pkt (OBC_APP_ID, &comms_data.obc_uart);
+    traceEXPORT(1);
 
     /* Check if a CW beacon should be sent */
     if(HAL_GetTick() - cw_tick > __CW_INTERVAL_MS ) {
